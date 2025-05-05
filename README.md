@@ -12,6 +12,22 @@ This tutorial is based on the staged [Create a Resource Type in Radius](https://
 ## Install Radius on AKS
 This tutorial will set up two environments: dev and test. The dev environment will use recipes which deploy all resources to the Kubernetes cluster. The test environment will deploy containers to Kubernetes and other resources, such as databases, to Azure.
 
+### Build the air-gapped Radius 
+Clone the Radius repository.
+```
+git clone git@github.com:radius-project/radius.git
+```
+Check out the air-happed-cluster branch
+```
+git checkout ytimocin/air-gapped-cluster
+```
+Build the custom binary.
+```
+make install
+```
+
+### Setup Azure variables
+
 Set some variables for your Azure subscription and resource group.
 ```
 export AZURE_SUBSCRIPTION_ID=`az account show | jq  -r '.id'`
