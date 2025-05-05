@@ -1,0 +1,36 @@
+name: MyCompany.Radius
+types:
+  postgreSQL:
+    capabilities: ["SupportsRecipes"]
+    apiVersions:
+      '2023-10-01-preview':
+        schema: 
+          type: object
+          properties:
+            environment:
+              type: string
+              description: "Required: The Radius environment; typically set by the rad CLI"
+            application:
+              type: string
+              description: "Optional: The application which the resource is associated with"
+            database:
+              type: string
+              description: "Required: The name of the database"
+            status:
+              type: object
+              properties:
+                binding:
+                  type: object
+                  properties:
+                    host:
+                      type: string
+                      description: "Read only: The host name of the database server"
+                    port:
+                      type: string
+                      description: "Read only: The port number of the database server"
+                    username:
+                      type: string
+                      description: "Read only: The username for the database"
+                    password:
+                      type: string
+                      description: "Read only: The password for the database"
