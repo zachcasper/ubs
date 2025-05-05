@@ -44,7 +44,7 @@ resource "azurerm_postgresql_server" "todolist-db" {
 output "result" {
   value = {
     values = {
-      host = azurerm_postgresql_server.server.fqdn
+      host = azurerm_postgresql_server.todolist-db.fqdn
       port = "5432"
       database = "postgres_db"
       username = "postgres"
