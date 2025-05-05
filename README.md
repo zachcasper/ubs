@@ -22,9 +22,24 @@ Get the kubecontext for your AKS cluster if it's not already set.
 ```
 az aks get-credentials --resource-group $AZURE_RESOURCE_GROUP_NAME --name $AKS_CLUSTER_NAME
 ```
+### Install Radius.
+Set the environment variables.
+```
+export RADIUS_CHART=
+export REGISTRY_HOST=
+export RADIUS_VERSION=
+```
 Install Radius.
 ```
-rad install kubernetes 
+rad install kubernetes \
+  --chart ${RADIUS_CHART} \
+  --set rp.image=${REGISTRY_HOST}/radius-project/applications-rp,rp.tag=${RADIUS_VERSION} \
+  --set dynamicrp.image=${REGISTRY_HOST}/radius-project/dynamic-rp,dynamicrp.tag=${RADIUS_VERSION} \
+  --set controller.image=${REGISTRY_HOST}/radius-project/controller,controller.tag=${RADIUS_VERSION} \
+  --set ucp.image=${REGISTRY_HOST}/radius-project/ucpd,ucp.tag=${RADIUS_VERSION} \
+  --set bicep.image=${REGISTRY_HOST}/radius-project/bicep,bicep.tag=${RADIUS_VERSION} \
+  --set de.image=${REGISTRY_HOST}/radius-project/deployment-engine,de.tag=${RADIUS_VERSION} \
+  --set dashboard.image=${REGISTRY_HOST}/radius-project/dashboard,dashboard.tag=${RADIUS_VERSION}
 ```
 Create a resource group in Radius. All resources including Radius environments reside in a resource group just like in Azure. Today, there resource groups do not provide a lot of functionality, but in the future, Radius will have RBAC rules tied to resource groups. You can just use  `default` for now or call the group whatever you like.
 ```
@@ -112,13 +127,41 @@ rad bicep publish-extension -f types.yaml --target mycompany.tgz
 ```
 Update the bicepconfig.json file to include the extension. The bicepconfig.json included in this example has already been updated. Consult the documentation on having multiple bicepconfig.json files if you are interested. Note that when you when your bicepconfig.json file is stored in a different directory than your .tgz extension file, you must reference the extension file using the full path name, not a relative path.
 
-## Deploy the todolist application
+## Deploy the todolist application to dev
 Make sure you are using the dev environment.
 ```
 rad workspace switch dev
 ```
 Deploy the todolist application.
 ```
-rad deploy todolist
+rad deploy todolist.bicep
 ```
 ### Port forward and open the application
+Use kubectl to port forward the frontend pod. Typically in a shared environment, the container would have a gateway resource which would setup an ingress controller using Contour. Since we installed Radius without Contour, the gateway resource will not work. 
+```
+kubectl port-forward `kubectl get pods -n dev-todolist | grep frontend | awk '{print $1}'` 3000:3000 -n dev-todolist
+```
+Open http://localhost:3000 in your browser. Click the POSTGRESQL environment variable and examine the environment variables injected into the container.
+
+We could have also used `rad run todolist.bicep -a todolist` which would have setup port forwarding automatically.
+
+### Examine the resources deployed
+Run the rap app graph command and confirm that Radius has created Kubernetes resources for the PostgreSQL database.
+```
+rad app graph -a todolist
+```
+
+## Deploy the todolist application to test
+Switch to the test enviornment
+```
+rad workspace switch test
+```
+Deploy the todolist application.
+```
+rad deploy todolist.bicep
+```
+### Port forward and open the application
+Use the same kubectl port-forward command as before, but change the namespace from dev-todolist to test-todolist. 
+
+### Examine the resources deployed
+Use the same `rap app graph -a todolist` command and confirm that Radius has created the PostgreSQL database on Azure.
