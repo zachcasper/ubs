@@ -48,6 +48,6 @@ resource db 'MyCompany.Radius/postgreSQL@2023-10-01-preview' = {
   properties: {
     application: todolist.id
     environment: environment
-    databaseName: 'todolist'
+    database: 'todolist'
   }
 }

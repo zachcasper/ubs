@@ -41,43 +41,60 @@ rad install kubernetes \
   --set de.image=${REGISTRY_HOST}/radius-project/deployment-engine,de.tag=${RADIUS_VERSION} \
   --set dashboard.image=${REGISTRY_HOST}/radius-project/dashboard,dashboard.tag=${RADIUS_VERSION}
 ```
-Create a resource group in Radius. All resources including Radius environments reside in a resource group just like in Azure. Today, there resource groups do not provide a lot of functionality, but in the future, Radius will have RBAC rules tied to resource groups. You can just use  `default` for now or call the group whatever you like.
-```
-rad group create default
-```
+
 ### Create the dev environment
-Create a dev environment in the default resource group.
+All resources including Radius environments reside in a resource group just like in Azure. Since we will be deploying the same application to a dev and a test environment, we need two separate resource groups (unless we wanted to rename our application but that defeats the purpose).
+
+Create a resource group for the dev environment.
 ```
-rad environment create dev --group default
+rad group create dev
+```
+Create a dev environment in the dev resource group.
+```
+rad environment create dev --group dev
 ```
 Set the Radius CLI configuration file. Radius uses the term workspace to refer to a specific combination of Radius installation, environment, and group.
 ```
-rad workspace create kubernetes dev --context $AKS_CLUSTER_NAME --environment dev --group default
+rad workspace create kubernetes dev --context $AKS_CLUSTER_NAME --environment dev --group dev
 ```
 ### Create the test environment
-Create a test environment in the default resource group.
+Create a resource group for the test environment.
 ```
-rad environment create test --group default
+rad group create test
+```
+Create a test environment in the test resource group.
+```
+rad environment create test --group test
 ```
 Set the Radius CLI configuration file. Radius uses the term workspace to refer to a specific combination of Radius installation, environment, and group.
 ```
-rad workspace create kubernetes test --context $AKS_CLUSTER_NAME --environment test --group default
+rad workspace create kubernetes test --context $AKS_CLUSTER_NAME --environment test --group test
 ```
 ### Setup Azure authentication
 In order for Radius to deploy resources to Azure, it must be able to authenticate. Radius itself must be authenticated to Azure even if you are authenticated on your local workstation. If Radius is not authenticated and you run `rad deploy`, the deployment will fail. Radius can authenticate to Azure using either a [service principal](https://docs.radapp.io/guides/operations/providers/azure-provider/howto-azure-provider-sp/) or if [workload identity](https://docs.radapp.io/guides/operations/providers/azure-provider/howto-azure-provider-wi/) is set up. This tutorial assumes a service principal.
 
 Create a service principal if you do not already have one and set environment variables.
 ```
-az ad sp create-for-rbac --role Owner --scope /subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/$INSTANCE_NAME > /tmp/sp.json
+az ad sp create-for-rbac --role Owner --scope /subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/$AZURE_RESOURCE_GROUP_NAME > /tmp/sp.json
 export AZURE_CLIENT_ID=`jq -r .'appId' /tmp/sp.json`
 export AZURE_CLIENT_SECRET=`jq -r .'password' /tmp/sp.json`
 export AZURE_TENANT_ID=`jq -r .'tenant' /tmp/sp.json`
 rm /tmp/sp.json
 ```
-Update the Radius environment.
+Add the service principal as a credential in Radius. Credentials today are stored at the Radius top level. In the future, we plan to move credentials to the environment level to enable multiple subscriptions.
 ```
-rad environment update $AKS_CLUSTER_NAME --azure-subscription-id $AZURE_SUBSCRIPTION_ID --azure-resource-group $AZURE_RESOURCE_GROUP_NAME
 rad credential register azure sp --client-id $AZURE_CLIENT_ID  --client-secret $AZURE_CLIENT_SECRET --tenant-id $AZURE_TENANT_ID
+```
+Update the dev and test environments with the Azure details.
+```
+rad environment update dev \
+  --workspace dev \
+  --azure-subscription-id $AZURE_SUBSCRIPTION_ID \
+  --azure-resource-group $AZURE_RESOURCE_GROUP_NAME
+rad environment update test \
+  --workspace test \
+  --azure-subscription-id $AZURE_SUBSCRIPTION_ID \
+  --azure-resource-group $AZURE_RESOURCE_GROUP_NAME
 ```
 
 ## Create PostgreSQL resource type
@@ -95,7 +112,7 @@ Commit the recipes directory into a Git repository. This directory has two Terra
 Register the Kubernetes recipe in the dev environment.
 ```
 rad recipe register default \
-  --environment dev \
+  --workspace dev \
   --resource-type MyCompany.Radius/postgreSQL \
   --template-kind terraform \
   --template-path git::https://github.com/zachcasper/ubs.git//recipes/kubernetes/postgresql
@@ -111,7 +128,7 @@ Some explaination of this command is warranted.
 Register the Azure recipe in the test environment.
 ```
 rad recipe register default \
-  --environment test \
+  --workspace test \
   --resource-type MyCompany.Radius/postgreSQL \
   --template-kind terraform \
   --template-path git::https://github.com/zachcasper/ubs.git//recipes/azure/postgresql

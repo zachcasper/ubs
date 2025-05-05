@@ -41,10 +41,6 @@ resource "azurerm_postgresql_server" "todolist-db" {
   ssl_minimal_tls_version_enforced = "TLS1_2"
 }
 
-output "id" {
-  value = data.azurerm_resource_group.example.id
-}
-
 output "result" {
   value = {
     values = {
