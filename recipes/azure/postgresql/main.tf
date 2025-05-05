@@ -9,6 +9,10 @@ terraform {
   required_version = ">= 1.1.0"
 }
 
+provider "azurerm" {
+  features {}
+}
+
 variable "context" {
   description = "This variable contains Radius recipe context."
   type = any
