@@ -1,5 +1,5 @@
-extension radius
-extension mycompany
+extension radiusCore
+extension radiusResources
 
 param environment string
 

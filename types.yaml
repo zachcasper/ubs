@@ -1,4 +1,4 @@
-name: MyCompany.Radius
+name: Radius.Resources
 types:
   postgreSQL:
     capabilities: ["SupportsRecipes"]
