@@ -32,6 +32,7 @@ Set some variables for your Azure subscription and resource group.
 ```
 export AZURE_SUBSCRIPTION_ID=
 export AZURE_RESOURCE_GROUP_NAME=
+expost AZURE_LOCATION=
 export AKS_CLUSTER_NAME=
 ```
 Get the kubecontext for your AKS cluster if it's not already set.
@@ -147,8 +148,10 @@ rad recipe register default \
   --workspace test \
   --resource-type Radius.Resources/postgreSQL \
   --template-kind terraform \
-  --template-path git::https://github.com/zachcasper/ubs.git//recipes/azure/postgresql
+  --template-path git::https://github.com/zachcasper/ubs.git//recipes/azure/postgresql \
+  --parameters resource_group_name=$AZURE_RESOURCE_GROUP_NAME --parameters location=$AZURE_LOCATION
 ```
+Notice that there are parameters on this recipe which were not on the dev environments. We encountered a bug where Radius was not setting the resource group or location on the context variable which gets past to the recipe. The parameters arguement forces a variable to be set in the Terraform configuration. You'll see this variable referenced in the azure/postgresql/main.tf on line 34 and 35 (var.resource_group_name and var.location). In the future these variables would be var.context.azure.resourceGroup and the parameter will not be required.
 
 ## Create the Bicep extension
 
@@ -198,3 +201,34 @@ Use the same kubectl port-forward command as before, but change the namespace fr
 
 ### Examine the resources deployed
 Use the same `rap app graph -a todolist` command and confirm that Radius has created the PostgreSQL database on Azure.
+
+## Clean up
+Delete both applications.
+```
+rad app delete --workspace dev
+rad app delete --workspace test
+```
+Verify the pods are terminated on the Kubernetes cluster.
+```
+kubectl get pods -A
+```
+Delete the namespaces if the pods still exist. This is not expected but just to make sure. When you delete the application the namespaces are retained but the pods should be destroyed. 
+```
+kubectl delete namespace dev-todolist
+kubectl delete namespace test-todolist
+```
+Verify the Azure PostgreSQL database has been deleted via the Azure portal. This is not expected just to make sure.
+
+Optionally, delete the Radius environments, Radius resource groups, and associated workspaces.
+```
+rad environment delete dev
+rad group delete dev
+rad workspace delete dev
+rad environment delete test
+rad group delete test
+rad workspace delete test
+```
+Optionally, delete the postgreSQL resource type.
+```
+rad delete resource-type Radius.Resources/postgreSQL
+```
