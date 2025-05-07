@@ -7,6 +7,11 @@ terraform {
   }
 }
 
+module "naming" {
+  source  = "Azure/naming/azurerm"
+  prefix = [ "todolist" ]
+}
+
 variable "context" {
   description = "This variable contains Radius recipe context."
   type = any
@@ -25,7 +30,7 @@ variable "location" {
 }
 
 resource "azurerm_postgresql_server" "todolist-db" {
-  name                = "todolist-db"
+  name                = module.naming.postgresql_database.name_unique
   location            = var.location
   resource_group_name = var.resource_group_name
 
