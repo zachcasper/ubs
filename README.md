@@ -6,7 +6,7 @@ This tutorial is based on the staged [Create a Resource Type in Radius](https://
 
 1. Radius CLI at least version 0.46 installed on the workstation
 1. Node.js installed on the workstation
-1. An AKS cluster in an Azure resource group
+1. An AKS cluster
 1. A Git repository for storing the Terraform configurations; this tutorial will assumes anonymous access to the Git repository, if that is not the case see [this documentation](https://red-sea-07f97dc1e-1409.westus2.3.azurestaticapps.net/guides/recipes/terraform/howto-private-registry/)
 
 ## Install Radius on AKS
@@ -30,9 +30,9 @@ make install
 
 Set some variables for your Azure subscription and resource group.
 ```
-export AZURE_SUBSCRIPTION_ID=`az account show | jq  -r '.id'`
-export AZURE_RESOURCE_GROUP_NAME=myresourcegroup
-export AKS_CLUSTER_NAME=mycluster
+export AZURE_SUBSCRIPTION_ID=
+export AZURE_RESOURCE_GROUP_NAME=
+export AKS_CLUSTER_NAME=
 ```
 Get the kubecontext for your AKS cluster if it's not already set.
 ```
@@ -69,7 +69,7 @@ Create a dev environment in the dev resource group.
 ```
 rad environment create dev --group dev
 ```
-Set the Radius CLI configuration file. Radius uses the term workspace to refer to a specific combination of Radius installation, environment, and group.
+Set up the Radius CLI configuration file. Radius uses the term workspace to refer to a specific combination of Radius installation, environment, and group.
 ```
 rad workspace create kubernetes dev --context $AKS_CLUSTER_NAME --environment dev --group dev
 ```
@@ -129,7 +129,7 @@ Register the Kubernetes recipe in the dev environment.
 ```
 rad recipe register default \
   --workspace dev \
-  --resource-type MyCompany.Radius/postgreSQL \
+  --resource-type Radius.Resources/postgreSQL \
   --template-kind terraform \
   --template-path git::https://github.com/zachcasper/ubs.git//recipes/kubernetes/postgresql
 ```
@@ -145,7 +145,7 @@ Register the Azure recipe in the test environment.
 ```
 rad recipe register default \
   --workspace test \
-  --resource-type MyCompany.Radius/postgreSQL \
+  --resource-type Radius.Resources/postgreSQL \
   --template-kind terraform \
   --template-path git::https://github.com/zachcasper/ubs.git//recipes/azure/postgresql
 ```
@@ -154,9 +154,9 @@ rad recipe register default \
 
 Since we created a new resource type, we must tell Bicep how to handle it. This is performed by creating a Bicep extension. Bicep extensions can be stored in either Azure Container Registry or on the file system. This example will use the file system. The documentation for using a private module registry is [here](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/quickstart-private-module-registry?tabs=azure-cli).
 
-Create the extension for MyCompany.
+Create the Bicep extension.
 ```
-rad bicep publish-extension -f types.yaml --target mycompany.tgz
+rad bicep publish-extension -f types.yaml --target radiusResources.tgz
 ```
 Update the bicepconfig.json file to include the extension. The bicepconfig.json included in this example has already been updated. Consult the documentation on having multiple bicepconfig.json files if you are interested. Note that when you when your bicepconfig.json file is stored in a different directory than your .tgz extension file, you must reference the extension file using the full path name, not a relative path.
 

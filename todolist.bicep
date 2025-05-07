@@ -43,7 +43,7 @@ resource frontend 'Applications.Core/containers@2023-10-01-preview' = {
   }
 }
 
-resource db 'MyCompany.Radius/postgreSQL@2023-10-01-preview' = {
+resource db 'Radius.Resources/postgreSQL@2023-10-01-preview' = {
   name: 'db'
   properties: {
     application: todolist.id
