@@ -2,14 +2,9 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "=4.27.0"
+      version = ">= 3.0, < 4.0"
     }
   }
-}
-
-provider "azurerm" {
-  skip_provider_registration = true
-  features {}
 }
 
 variable "context" {
@@ -17,18 +12,22 @@ variable "context" {
   type = any
 }
 
-data "azurerm_resource_group" "radius_provided-rg" {
-  name = var.context.azure.resourceGroup
-}
-
 resource "random_password" "password" {
   length           = 16
 }
 
+variable "resource_group_name" {
+  type = string
+}
+
+variable "location" {
+  type = string
+}
+
 resource "azurerm_postgresql_server" "todolist-db" {
   name                = "todolist-db"
-  location            = data.azurerm_resource_group.radius_provided-rg.location
-  resource_group_name = data.azurerm_resource_group.radius_provided-rg.name
+  location            = var.location
+  resource_group_name = var.resource_group_name
 
   administrator_login          = "postgres"
   administrator_login_password = random_password.password.result
