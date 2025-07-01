@@ -3,7 +3,7 @@
 		"extensibility": true
 	},
 	"extensions": {
-		"radiusCore": "br:biceptypes.azurecr.io/radius:latest",
+		"radius": "br:biceptypes.azurecr.io/radius:latest",
 		"aws": "br:biceptypes.azurecr.io/aws:latest",
 		"radiusResources": "radiusResources.tgz"
 	}

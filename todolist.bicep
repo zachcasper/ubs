@@ -1,4 +1,4 @@
-extension radiusCore
+extension radius
 extension radiusResources
 
 param environment string
@@ -22,32 +22,33 @@ resource frontend 'Applications.Core/containers@2023-10-01-preview' = {
           containerPort: 3000
         }
       }
-      env: {
-        CONNECTION_POSTGRESQL_HOST: {
-          value: db.properties.status.binding.host
-        }
-        CONNECTION_POSTGRESQL_PORT: {
-          value: string(db.properties.status.binding.port)
-        }
-        CONNECTION_POSTGRESQL_USERNAME: {
-          value: db.properties.status.binding.username
-        }
-        CONNECTION_POSTGRESQL_DATABASE: {
-          value: db.properties.database
-        }
-        CONNECTION_POSTGRESQL_PASSWORD: {
-          value: db.properties.status.binding.password
-        } 
+    }
+    connections: {
+      db:{
+        source: db.id
       }
     }
   }
 }
 
-resource db 'Radius.Resources/postgreSQL@2023-10-01-preview' = {
+resource db 'Radius.Resources/postgreSQL@2025-07-02' = {
   name: 'db'
   properties: {
     application: todolist.id
     environment: environment
     database: 'todolist'
+  }
+}
+
+resource gw 'Applications.Core/gateways@2023-10-01-preview' = {
+  name: 'gw'
+  properties: {
+    application: todolist.id
+    routes: [
+      {
+        path: '/'
+        destination: 'http://frontend:3000'
+      }
+    ]
   }
 }
