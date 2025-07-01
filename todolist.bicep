@@ -15,6 +15,7 @@ resource frontend 'Applications.Core/containers@2023-10-01-preview' = {
   properties: {
     application: todolist.id
     environment: environment
+    
     container: {
       image: 'ghcr.io/radius-project/samples/demo:latest'
       ports: {
@@ -22,26 +23,54 @@ resource frontend 'Applications.Core/containers@2023-10-01-preview' = {
           containerPort: 3000
         }
       }
+      // env: {
+      //   CONNECTION_POSTGRESQL_PASSWORD: {
+      //     valueFrom: {
+      //       secretRef: {
+      //         key: 'username'
+      //         source: credentials.id
+      //       }
+      //     }
+      //   }
+      // }
     }
     connections: {
-      db:{
-        source: db.id
+      postgresql: {
+        source: postgresql.id
+        // disableDefaultEnvVars: true
       }
     }
   }
 }
 
-resource db 'Radius.Resources/postgreSQL@2025-07-02' = {
-  name: 'db'
+resource credentials 'Applications.Core/secretStores@2023-10-01-preview' = {
+  name: 'credentials'
   properties: {
     application: todolist.id
     environment: environment
-    database: 'todolist'
+    type: 'generic'
+    data: {
+      username: {
+        value: postgresql.properties.username
+      }
+      password: {
+        value: postgresql.properties.password
+      }     
+    }
   }
 }
 
-resource gw 'Applications.Core/gateways@2023-10-01-preview' = {
-  name: 'gw'
+resource postgresql 'Radius.Resources/postgreSQL@2023-10-01-preview' = {
+  name: 'postgresql'
+  properties: {
+    application: todolist.id
+    environment: environment
+    size: 'S'
+  }
+}
+
+resource gateway 'Applications.Core/gateways@2023-10-01-preview' = {
+  name: 'gateway'
   properties: {
     application: todolist.id
     routes: [
