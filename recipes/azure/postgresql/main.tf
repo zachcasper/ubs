@@ -39,6 +39,8 @@ resource "azurerm_postgresql_flexible_server" "todolist-db" {
 
   sku_name   = "B_Standard_B1ms"
   version    = "16"
+
+  zone = "1"
 }
 
 // Create server firewall rules for azure service internal access
