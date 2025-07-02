@@ -23,39 +23,11 @@ resource frontend 'Applications.Core/containers@2023-10-01-preview' = {
           containerPort: 3000
         }
       }
-      // env: {
-      //   CONNECTION_POSTGRESQL_PASSWORD: {
-      //     valueFrom: {
-      //       secretRef: {
-      //         key: 'username'
-      //         source: credentials.id
-      //       }
-      //     }
-      //   }
-      // }
     }
     connections: {
       postgresql: {
         source: postgresql.id
-        // disableDefaultEnvVars: true
       }
-    }
-  }
-}
-
-resource credentials 'Applications.Core/secretStores@2023-10-01-preview' = {
-  name: 'credentials'
-  properties: {
-    application: todolist.id
-    environment: environment
-    type: 'generic'
-    data: {
-      username: {
-        value: postgresql.properties.username
-      }
-      password: {
-        value: postgresql.properties.password
-      }     
     }
   }
 }

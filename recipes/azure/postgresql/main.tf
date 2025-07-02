@@ -29,7 +29,7 @@ variable "location" {
 
 variable "ha" {
   description = "Create database with high availability or not"
-  type = boolean
+  type = bool
 }
 
 variable "size_sku_map" {

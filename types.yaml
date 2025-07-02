@@ -3,7 +3,7 @@ name: Radius.Resources
 types:
   postgreSQL:
     description: |
-      A PostgreSQL database. 
+      A PostgreSQL database. The size property is required. The storage_gb property is optional but defaults to 32.
 
     capabilities: ["SupportsRecipes"]
     apiVersions:
@@ -27,7 +27,7 @@ types:
               - XL
             storage_gb:
               type: integer
-              description: The max storage allowed, possible values are 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32767
+              description: The max storage allowed, possible values are 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32767, defaults to 32
               enum:
               - 32
               - 53
