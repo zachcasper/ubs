@@ -2,6 +2,9 @@
 name: Radius.Resources
 types:
   postgreSQL:
+    description: |
+      A PostgreSQL database. 
+
     capabilities: ["SupportsRecipes"]
     apiVersions:
       '2023-10-01-preview':
@@ -17,6 +20,26 @@ types:
             size:
               type: string
               description: The size of the PostgreSQL database, accepts S, M, L, XL
+              enum:
+              - S
+              - M
+              - L
+              - XL
+            storage_gb:
+              type: integer
+              description: The max storage allowed, possible values are 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32767
+              enum:
+              - 32
+              - 53
+              - 128
+              - 256
+              - 512
+              - 1024
+              - 2048
+              - 4096
+              - 8192
+              - 16384
+              - 32767
             database:
               type: string
               description: The name of the database
