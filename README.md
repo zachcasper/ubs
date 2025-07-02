@@ -1,128 +1,146 @@
-# PostgreSQL Example using Azure Database for PostgreSQL
+# PostgreSQL Sample using Azure Database for PostgreSQL
 
-This tutorial is based on the staged [Create a Resource Type in Radius](https://red-sea-07f97dc1e-1409.westus2.3.azurestaticapps.net/tutorials/tutorial-resource-type/) tutorial. The only difference between that tutorial and this one is the inclusion of using an Azure Database for PostgreSQL resource and the ability to specify the database name.
+This tutorial is based on the staged [Create a Resource Type in Radius](https://docs.radapp.io/tutorials/create-resource-type/) tutorial with some improvements:
+
+* PostgreSQL is deployed to Azure instead of Kubernetes. The Recipe uses Azure Database for PostgreSQL Flexible Server
+* An additional property is exposed to the developer to specify the storage in GiB
+* A Recipe parameter is used to determine if the database should be configured in high-availability mode or not
 
 ## Prerequisites
 
-1. Radius CLI at least version 0.46 installed on the workstation
-1. Node.js installed on the workstation
-1. An AKS cluster
-1. A Git repository for storing the Terraform configurations; this tutorial will assumes anonymous access to the Git repository, if that is not the case see [this documentation](https://red-sea-07f97dc1e-1409.westus2.3.azurestaticapps.net/guides/recipes/terraform/howto-private-registry/)
+1. Radius CLI at least version 0.48 installed on the workstation
+1. An Azure subscription, resource group, and AKS cluster already created
+1. Node.js installed on the workstation (this is [temporary](https://github.com/radius-project/radius/issues/9230))
+1. A Git repository for storing the Terraform configurations; this tutorial will assumes anonymous access to the Git repository, if that is not the case see [this documentation](https://docs.radapp.io/guides/recipes/terraform/howto-private-registry/)
 
-## Install Radius on AKS
-This tutorial will set up two environments: dev and test. The dev environment will use recipes which deploy all resources to the Kubernetes cluster. The test environment will deploy containers to Kubernetes and other resources, such as databases, to Azure.
+### Air-Gapped Environments
+This tutorial requires access to several resources on the internet. While it is possible to perform these actions in an air-gapped environment, that requires additional configuration out of scope for this sample.
 
-### Build the air-gapped Radius 
-Clone the Radius repository.
-```
-git clone git@github.com:radius-project/radius.git
-```
-Check out the air-happed-cluster branch
-```
-git checkout ytimocin/air-gapped-cluster
-```
-Build the custom binary.
-```
-make install
-```
+## Step 1: Install Radius on AKS
+This tutorial will set up three environments: dev, test, and prod. The dev environment will use recipes which deploy all resources to the Kubernetes cluster. The test environment will deploy containers to the Kubernetes cluster, but the PostgreSQL database using Azure Database for PostgreSQL in non-HA mode. The prod environment will also deploy containers to Kubernetes but the Azure Database for PostgreSQL is configured in high-availability mode.
 
-### Setup Azure variables
-
+### Prepare Azure
 Set some variables for your Azure subscription and resource group.
 ```
-export AZURE_SUBSCRIPTION_ID=
-export AZURE_RESOURCE_GROUP_NAME=
-expost AZURE_LOCATION=
+export AZURE_SUBSCRIPTION_ID=`az account show | jq  -r '.id'`
+export AZURE_LOCATION=
 export AKS_CLUSTER_NAME=
+export AKS_CLUSTER_RESOURCE_GROUP_NAME=
+export DEV_RESOURCE_GROUP_NAME=
+export TEST_RESOURCE_GROUP_NAME=
+export PROD_RESOURCE_GROUP_NAME=
 ```
 Get the kubecontext for your AKS cluster if it's not already set.
 ```
-az aks get-credentials --resource-group $AZURE_RESOURCE_GROUP_NAME --name $AKS_CLUSTER_NAME
+az aks get-credentials --resource-group $AKS_CLUSTER_RESOURCE_GROUP_NAME --name $AKS_CLUSTER_NAME
 ```
+We need three Azure resource groups for each of our environments.
+```
+az group create --location $AZURE_LOCATION --resource-group $DEV_RESOURCE_GROUP_NAME
+az group create --location $AZURE_LOCATION --resource-group $TEST_RESOURCE_GROUP_NAME
+az group create --location $AZURE_LOCATION --resource-group $PROD_RESOURCE_GROUP_NAME
+```
+
 ### Install Radius.
-Set the environment variables.
-```
-export RADIUS_CHART=
-export REGISTRY_HOST=
-export RADIUS_VERSION=
-```
 Install Radius.
 ```
-rad install kubernetes \
-  --chart ${RADIUS_CHART} \
-  --set rp.image=${REGISTRY_HOST}/radius-project/applications-rp,rp.tag=${RADIUS_VERSION} \
-  --set dynamicrp.image=${REGISTRY_HOST}/radius-project/dynamic-rp,dynamicrp.tag=${RADIUS_VERSION} \
-  --set controller.image=${REGISTRY_HOST}/radius-project/controller,controller.tag=${RADIUS_VERSION} \
-  --set ucp.image=${REGISTRY_HOST}/radius-project/ucpd,ucp.tag=${RADIUS_VERSION} \
-  --set bicep.image=${REGISTRY_HOST}/radius-project/bicep,bicep.tag=${RADIUS_VERSION} \
-  --set de.image=${REGISTRY_HOST}/radius-project/deployment-engine,de.tag=${RADIUS_VERSION} \
-  --set dashboard.image=${REGISTRY_HOST}/radius-project/dashboard,dashboard.tag=${RADIUS_VERSION}
+rad install kubernetes
 ```
 
-### Create the dev environment
-All resources including Radius environments reside in a resource group just like in Azure. Since we will be deploying the same application to a dev and a test environment, we need two separate resource groups (unless we wanted to rename our application but that defeats the purpose).
+### Create the Radius Resource Groups and Environments
+All resources including Radius environments reside in a resource group just like in Azure. Since we will be deploying the same application to three different environments, we need three separate resource groups.
 
-Create a resource group for the dev environment.
+Create three resource groups.
 ```
 rad group create dev
+rad group create test
+rad group create prod
 ```
-Create a dev environment in the dev resource group.
+Create the environments.
 ```
 rad environment create dev --group dev
-```
-Set up the Radius CLI configuration file. Radius uses the term workspace to refer to a specific combination of Radius installation, environment, and group.
-```
-rad workspace create kubernetes dev --context $AKS_CLUSTER_NAME --environment dev --group dev
-```
-### Create the test environment
-Create a resource group for the test environment.
-```
-rad group create test
-```
-Create a test environment in the test resource group.
-```
 rad environment create test --group test
+rad environment create prod --group prod
 ```
-Set the Radius CLI configuration file. Radius uses the term workspace to refer to a specific combination of Radius installation, environment, and group.
+Create the Radius Workspace. A Workspace is the local CLI configuration. It is a combination of the Kubernetes context, Radius resource group, and Radius environment.
 ```
-rad workspace create kubernetes test --context $AKS_CLUSTER_NAME --environment test --group test
+rad workspace create kubernetes dev --context $RADIUS_NAME --group dev --environment dev --force
+rad workspace create kubernetes test --context $RADIUS_NAME --group test --environment test --force
+rad workspace create kubernetes prod --context $RADIUS_NAME --group prod --environment prod --force
 ```
+
 ### Setup Azure authentication
 In order for Radius to deploy resources to Azure, it must be able to authenticate. Radius itself must be authenticated to Azure even if you are authenticated on your local workstation. If Radius is not authenticated and you run `rad deploy`, the deployment will fail. Radius can authenticate to Azure using either a [service principal](https://docs.radapp.io/guides/operations/providers/azure-provider/howto-azure-provider-sp/) or if [workload identity](https://docs.radapp.io/guides/operations/providers/azure-provider/howto-azure-provider-wi/) is set up. This tutorial assumes a service principal.
 
 Create a service principal if you do not already have one and set environment variables.
 ```
-az ad sp create-for-rbac --role Owner --scope /subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/$AZURE_RESOURCE_GROUP_NAME > /tmp/sp.json
-export AZURE_CLIENT_ID=`jq -r .'appId' /tmp/sp.json`
-export AZURE_CLIENT_SECRET=`jq -r .'password' /tmp/sp.json`
-export AZURE_TENANT_ID=`jq -r .'tenant' /tmp/sp.json`
-rm /tmp/sp.json
+az ad sp create-for-rbac --role Owner --scope /subscriptions/$AZURE_SUBSCRIPTION_ID > azure-credentials.json
+export AZURE_CLIENT_ID=`jq -r .'appId' azure-credentials.json`
+export AZURE_CLIENT_SECRET=`jq -r .'password' azure-credentials.json`
+export AZURE_TENANT_ID=`jq -r .'tenant' azure-credentials.json`
 ```
 Add the service principal as a credential in Radius. Credentials today are stored at the Radius top level. In the future, we plan to move credentials to the environment level to enable multiple subscriptions.
 ```
 rad credential register azure sp --client-id $AZURE_CLIENT_ID  --client-secret $AZURE_CLIENT_SECRET --tenant-id $AZURE_TENANT_ID
 ```
-Update the dev and test environments with the Azure details.
+Update the dev, test, and prod environments with the Azure details.
 ```
 rad environment update dev \
-  --workspace dev \
+  --group dev \
   --azure-subscription-id $AZURE_SUBSCRIPTION_ID \
-  --azure-resource-group $AZURE_RESOURCE_GROUP_NAME
+  --azure-resource-group $DEV_RESOURCE_GROUP_NAME
 rad environment update test \
-  --workspace test \
+  --group test \
   --azure-subscription-id $AZURE_SUBSCRIPTION_ID \
-  --azure-resource-group $AZURE_RESOURCE_GROUP_NAME
+  --azure-resource-group $TEST_RESOURCE_GROUP_NAME
+rad environment update prod \
+  --group prod \
+  --azure-subscription-id $AZURE_SUBSCRIPTION_ID \
+  --azure-resource-group $PROD_RESOURCE_GROUP_NAME
+```
+**Note:** This sample walks you through using imperitive CLI commands to teach you. In a real-life scenario, all of this configuration would be in a single configuration file which you would deploy all at once.
+
+
+Delete the file containing the credentials.
+```
+rm azure-credentials.json
 ```
 
-## Create PostgreSQL resource type
-
+## Step 2: Define the PostgreSQL resource type API
+Radius Resource Types are the contracts between developers and the platform. Resource Types are defined using an OpenAPI schema in a YAML file. 
 ```
-rad resource-type create postgreSQL -f types.yaml
+rad resource-type create -f types.yaml
 ```
+You can view the Resource Type properties using the `rad resource-type show` command. The output looks like this:
+```
+$ rad resource-type show Radius.Resources/postgreSQL
+TYPE                         NAMESPACE
+Radius.Resources/postgreSQL  Radius.Resources
 
-## Register the PostgreSQL recipe
+DESCRIPTION:
+A PostgreSQL database. The size property is required. The storage_gb property is optional but defaults to 32.
 
-Commit the recipes directory into a Git repository. This directory has two Terraform recipes for deploying a PostgreSQL database, one for Kubernetes and one for Azure. The Kubernetes recipe will be used for the dev environment while the Azure recipe will be used for the test environment.
+API VERSION: 2023-10-01-preview
+
+TOP-LEVEL PROPERTIES:
+
+NAME         TYPE      REQUIRED  READ-ONLY  DESCRIPTION
+application  string    false     false      The ID of the Radius Application
+database     string    false     true       The name of the database
+environment  string    true      false      The ID of the Radius Environment, typically set by the Radius CLI
+host         string    false     true       The host name of the database
+password     string    false     true       The password for the database
+port         string    false     true       The port number of the database
+size         string    true      false      The size of the PostgreSQL database, accepts S, M, L, XL
+username     string    false     true       The username for the database
+```
+The non-read-only properties are set by the developer. The read-only properties are outputs from the deployments and can be used in other resources.
+
+## Step 3: Define the PostgreSQL implementation
+
+Resources are deployed via Recipes. Recipes are either Terraform configurations or Bicep templates. In this sample, Terraform configurations stored in a Git repository are used.
+
+The recipes directory of this repository containers two Terraform recipes for deploying a PostgreSQL database, one for Kubernetes and one for Azure. The Kubernetes recipe will be used for the dev environment while the Azure recipe will be used for the test and prod environment.
 
 ### Dev environment
 
@@ -149,11 +167,27 @@ rad recipe register default \
   --resource-type Radius.Resources/postgreSQL \
   --template-kind terraform \
   --template-path git::https://github.com/zachcasper/ubs.git//recipes/azure/postgresql \
-  --parameters resource_group_name=$AZURE_RESOURCE_GROUP_NAME --parameters location=$AZURE_LOCATION
+  --parameters resource_group_name=$TEST_RESOURCE_GROUP_NAME \
+  --parameters location=$AZURE_LOCATION
 ```
-Notice that there are parameters on this recipe which were not on the dev environments. We encountered a bug where Radius was not setting the resource group or location on the context variable which gets past to the recipe. The parameters arguement forces a variable to be set in the Terraform configuration. You'll see this variable referenced in the azure/postgresql/main.tf on line 34 and 35 (var.resource_group_name and var.location). In the future these variables would be var.context.azure.resourceGroup and the parameter will not be required.
+Notice that there are parameters on this recipe which were not on the dev environments. There is a bug where Radius is not setting the resource group or location on the context variable which gets past to the recipe. The parameters arguement forces a variable to be set in the Terraform configuration. You'll see this variable referenced in the azure/postgresql/main.tf on line 20 and 25 (var.resource_group_name and var.location). In the future these variables would be var.context.azure.resourceGroup and the parameter will not be required.
 
-## Create the Bicep extension
+### Prod environment
+
+Register the Azure recipe in the prod environment.
+```
+rad recipe register default \
+  --workspace prod \
+  --resource-type Radius.Resources/postgreSQL \
+  --template-kind terraform \
+  --template-path git::https://github.com/zachcasper/ubs.git//recipes/azure/postgresql \
+  --parameters resource_group_name=$PROD_RESOURCE_GROUP_NAME \
+  --parameters location=$AZURE_LOCATION \
+  --parameters ha=true
+```
+For the prod environment, we added a `ha` parameter for the Recipe. This parameter is passed directly to the Terraform configuration. You can see on line 67 that if `ha` is true, it configures the database in high-availability mode.
+
+### Create the Bicep extension
 
 Since we created a new resource type, we must tell Bicep how to handle it. This is performed by creating a Bicep extension. Bicep extensions can be stored in either Azure Container Registry or on the file system. This example will use the file system. The documentation for using a private module registry is [here](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/quickstart-private-module-registry?tabs=azure-cli).
 
@@ -163,23 +197,22 @@ rad bicep publish-extension -f types.yaml --target radiusResources.tgz
 ```
 Update the bicepconfig.json file to include the extension. The bicepconfig.json included in this example has already been updated. Consult the documentation on having multiple bicepconfig.json files if you are interested. Note that when you when your bicepconfig.json file is stored in a different directory than your .tgz extension file, you must reference the extension file using the full path name, not a relative path.
 
-## Deploy the todolist application to dev
+## Step 4: Run the todolist application in dev
 Make sure you are using the dev environment.
 ```
 rad workspace switch dev
 ```
 Deploy the todolist application.
 ```
-rad deploy todolist.bicep
+rad run todolist.bicep -a todolist
 ```
-### Port forward and open the application
-Use kubectl to port forward the frontend pod. Typically in a shared environment, the container would have a gateway resource which would setup an ingress controller using Contour. Since we installed Radius without Contour, the gateway resource will not work. 
-```
-kubectl port-forward `kubectl get pods -n dev-todolist | grep frontend | awk '{print $1}'` 3000:3000 -n dev-todolist
-```
+The `rad run` command will automatically setup port forwarding to our application.
+
 Open http://localhost:3000 in your browser. Click the POSTGRESQL environment variable and examine the environment variables injected into the container.
 
-We could have also used `rad run todolist.bicep -a todolist` which would have setup port forwarding automatically.
+Open http://localhost:7007 in your browser and examine the Radius Dashboard which is built on Backstage. In the future, this dashboard will be a standalone Backstage plug-in and include more developer documentation.
+
+CTRL-C to exit the log stream.
 
 ### Examine the resources deployed
 Run the rap app graph command and confirm that Radius has created Kubernetes resources for the PostgreSQL database.
@@ -187,7 +220,7 @@ Run the rap app graph command and confirm that Radius has created Kubernetes res
 rad app graph -a todolist
 ```
 
-## Deploy the todolist application to test
+## Step 5: Deploy the todolist application to test
 Switch to the test enviornment
 ```
 rad workspace switch test
@@ -196,17 +229,32 @@ Deploy the todolist application.
 ```
 rad deploy todolist.bicep
 ```
-### Port forward and open the application
-Use the same kubectl port-forward command as before, but change the namespace from dev-todolist to test-todolist. 
 
 ### Examine the resources deployed
 Use the same `rap app graph -a todolist` command and confirm that Radius has created the PostgreSQL database on Azure.
+
+
+## Step 6: Deploy the todolist application to prod
+Switch to the prod enviornment
+```
+rad workspace switch prod
+```
+Deploy the todolist application.
+```
+rad deploy todolist.bicep
+```
+
+### Examine the resources deployed
+Use the same `rad app graph -a todolist` command and confirm that Radius has created the PostgreSQL database on Azure.
+
+Using the Azure portal, confirm that the database was created in high-availability mode.
 
 ## Clean up
 Delete both applications.
 ```
 rad app delete --workspace dev
 rad app delete --workspace test
+rad app delete --workspace prod
 ```
 Verify the pods are terminated on the Kubernetes cluster.
 ```
@@ -216,6 +264,7 @@ Delete the namespaces if the pods still exist. This is not expected but just to 
 ```
 kubectl delete namespace dev-todolist
 kubectl delete namespace test-todolist
+kubectl delete namespace prod-todolist
 ```
 Verify the Azure PostgreSQL database has been deleted via the Azure portal. This is not expected just to make sure.
 
@@ -227,8 +276,17 @@ rad workspace delete dev
 rad environment delete test
 rad group delete test
 rad workspace delete test
+rad environment delete prod
+rad group delete prod
+rad workspace delete prod
 ```
-Optionally, delete the postgreSQL resource type.
+Optionally, uninstall Radius
 ```
-rad delete resource-type Radius.Resources/postgreSQL
+rad uninstall kubernetes
+```
+Finally, optionally delete the Azure resource groups.
+```
+az group delete --location $AZURE_LOCATION --resource-group $DEV_RESOURCE_GROUP_NAME
+az group delete --location $AZURE_LOCATION --resource-group $TEST_RESOURCE_GROUP_NAME
+az group delete --location $AZURE_LOCATION --resource-group $PROD_RESOURCE_GROUP_NAME
 ```

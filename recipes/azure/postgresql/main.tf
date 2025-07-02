@@ -27,6 +27,12 @@ variable "location" {
   type = string
 }
 
+variable "ha" {
+  description = "Create database with high availability configuration"
+  type = bool
+  default     = false
+}
+
 variable "size_sku_map" {
   type = map(string)
   default = {
@@ -58,6 +64,14 @@ resource "azurerm_postgresql_flexible_server" "todolist-db" {
   version    = "16"
 
   zone = "1"
+  
+  dynamic "high_availability" {
+    for_each = var.ha ? [1] : []
+    content {
+      mode                      = "ZoneRedundant"
+      standby_availability_zone = 2
+    }
+  }
 }
 
 # Set require_ssl to off

@@ -1,9 +1,11 @@
-# This will be namespace in the future
+# This will be namespace in the very near future
 name: Radius.Resources
 types:
   postgreSQL:
     description: |
-      A PostgreSQL database. The size property is required. The storage_gb property is optional but defaults to 32.
+      A PostgreSQL database. Dev environments deploy to Kubernetes. Test environments deploy to Azure using Azure Database for PostgreSQL. Production environments deploy to Azure in high-availability mode.
+
+      For help, contact dev-help@mycompany.com.
 
     capabilities: ["SupportsRecipes"]
     apiVersions:
