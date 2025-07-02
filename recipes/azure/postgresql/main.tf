@@ -46,7 +46,7 @@ resource "azurerm_postgresql_flexible_server" "todolist-db" {
 # Set require_ssl to off
 resource "azurerm_postgresql_flexible_server_configuration" "disable_ssl" {
   name                = "require_secure_transport"
-  server_name         = azurerm_postgresql_flexible_server.todolist-db.id
+  server_id         = azurerm_postgresql_flexible_server.todolist-db.id
   value               = "off"
 }
 
@@ -56,14 +56,6 @@ resource "azurerm_postgresql_flexible_server_firewall_rule" "azure_access" {
   server_id        = azurerm_postgresql_flexible_server.todolist-db.id
   start_ip_address = "0.0.0.0" // IP address of azure services
   end_ip_address   = "0.0.0.0"
-}
-
-// Create server firewall rules for allowed I.P addresses
-resource "azurerm_postgresql_flexible_server_firewall_rule" "allowed_ips" {
-  name             = "AllowWorkstationIP"
-  server_id        = azurerm_postgresql_flexible_server.todolist-db.id
-  start_ip_address = "136.49.175.58"
-  end_ip_address   = "136.49.175.58"
 }
 
 output "result" {
