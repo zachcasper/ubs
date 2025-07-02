@@ -27,11 +27,6 @@ variable "location" {
   type = string
 }
 
-variable "ha" {
-  description = "Create database with high availability or not"
-  type = bool
-}
-
 variable "size_sku_map" {
   type = map(string)
   default = {
