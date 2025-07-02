@@ -41,6 +41,22 @@ resource "azurerm_postgresql_flexible_server" "todolist-db" {
   version    = "16"
 }
 
+// Create server firewall rules for azure service internal access
+resource "azurerm_postgresql_flexible_server_firewall_rule" "azure_access" {
+  name             = "AllowAllWindowsAzureIps"
+  server_id        = azurerm_postgresql_flexible_server.todolist-db.id
+  start_ip_address = "0.0.0.0" // IP address of azure services
+  end_ip_address   = "0.0.0.0"
+}
+
+// Create server firewall rules for allowed I.P addresses
+resource "azurerm_postgresql_flexible_server_firewall_rule" "allowed_ips" {
+  name             = "allowed_ip_${count.index}"
+  server_id        = azurerm_postgresql_flexible_server.todolist-db.id
+  start_ip_address = "136.49.175.58"
+  end_ip_address   = "136.49.175.58"
+}
+
 output "result" {
   value = {
     values = {
