@@ -42,7 +42,7 @@ resource "random_password" "password" {
 }
 
 locals {
-  storage_mb = storage_gb == "" ? 32768 : var.context.resource.properties.storage_gb * 1024
+  storage_mb = var.context.resource.properties.storage_gb == "" ? 32768 : var.context.resource.properties.storage_gb * 1024
 }
 
 resource "azurerm_postgresql_flexible_server" "todolist-db" {
