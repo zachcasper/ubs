@@ -43,6 +43,13 @@ resource "azurerm_postgresql_flexible_server" "todolist-db" {
   zone = "1"
 }
 
+# Set require_ssl to off
+resource "azurerm_postgresql_flexible_server_configuration" "disable_ssl" {
+  name                = "require_secure_transport"
+  server_name         = azurerm_postgresql_flexible_server.todolist-db.id
+  value               = "off"
+}
+
 // Create server firewall rules for azure service internal access
 resource "azurerm_postgresql_flexible_server_firewall_rule" "azure_access" {
   name             = "AllowAllWindowsAzureIps"
