@@ -51,7 +51,7 @@ resource "azurerm_postgresql_flexible_server_firewall_rule" "azure_access" {
 
 // Create server firewall rules for allowed I.P addresses
 resource "azurerm_postgresql_flexible_server_firewall_rule" "allowed_ips" {
-  name             = "allowed_ip_${count.index}"
+  name             = "AllowWorkstationIP"
   server_id        = azurerm_postgresql_flexible_server.todolist-db.id
   start_ip_address = "136.49.175.58"
   end_ip_address   = "136.49.175.58"
