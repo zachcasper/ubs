@@ -75,7 +75,7 @@ output "result" {
   value = {
     values = {
       host = "${kubernetes_service.redis.metadata[0].name}.${kubernetes_service.redis.metadata[0].namespace}.svc.cluster.local"
-      port = kubernetes_service.redis.spec.port[0].port
+      port = kubernetes_service.redis.spec[0].port[0].port
       username = ""
     }
     secrets = {
