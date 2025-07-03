@@ -38,6 +38,6 @@ resource postgresql 'Radius.Resources/postgreSQL@2023-10-01-preview' = {
     application: todolist.id
     environment: environment
     size: 'S' 
-    storage_gb: 32 
+    storage_gb: 32
   }
 }

@@ -70,32 +70,32 @@ All resources including Radius environments reside in a resource group just like
 
 Create a Radius resource group. There is no configuration for resource groups yet (there will be RBAC rules in the future), so we can just use a simple create command.
 ```
-rad group create todolist-demo
+rad group create demo-todolist
 ```
 Create a corresponding environments. We could use the `rad environment create` imperative command, but since we need more advanced configurations, we will use a declarative approach with a Bicep file. This also saves us from using multiple `rad recipe register` imperative commands. 
 
-This repository has the todolist-demo-env.bicep file. There are four resources defined:
+This repository has the demo-todolist-env.bicep file. There are four resources defined:
 
-* The todolist-demo environment. 
-  * The Kubernetes namespace is `demo`. When we deploy the `todolist` application, Radius will deploy the resources to the `todolist-demo` Kubernetes namespace.
+* The demo-todolist environment. 
+  * The Kubernetes namespace is `demo`. When we deploy the `todolist` application, Radius will deploy the resources to the `demo-todolist` Kubernetes namespace.
   * The `recipeConfig` contains the authentication for the Git repository, the provider mirror, and the binary location and the certificate authority certificate
   * The recipe for PostgreSQL and Redis
 * Three secrets for storing the authentication tokens and certificate
 
-Create the todolist-demo environment.
+Create the demo-todolist environment.
 
 ```bash
-rad env create todolist-demo --group todolist-demo
+rad env create demo-todolist --group demo-todolist
 ```
 
 Then deploy the Bicep file (in the future this double step will not be required).
 
 ```
-rad deploy todolist-demo-env.bicep --group todolist-demo --environment todolist-demo
+rad deploy demo-todolist-env.bicep --group demo-todolist --environment demo-todolist
 ```
 Create the Radius Workspace. A Workspace is the local CLI configuration. It is a combination of the Kubernetes context, Radius resource group, and Radius environment.
 ```
-rad workspace create kubernetes todolist-demo --context `kubectl config current-context` --group todolist-demo --environment todolist-demo
+rad workspace create kubernetes demo-todolist --context `kubectl config current-context` --group demo-todolist --environment demo-todolist
 ```
 
 ## Step 1: Deploy a container
@@ -129,7 +129,7 @@ rad deploy todolist-app-1.bicep
 Once deployed, you can manually port forward using:
 
 ```bash
-kubectl port-forward $(kubectl get pod -l radapp.io/resource=frontend -n dev-todolist -o name) 3000:3000 -n dev-todolist
+kubectl port-forward $(kubectl get pod -l radapp.io/resource=frontend -n demo-todolist -o name) 3000:3000 -n demo-todolist
 ```
 
 ## Step 2: Add a Redis cache
@@ -148,6 +148,8 @@ This deploys the same Todolist container but adds a Redis cache resource, and a 
 ```bash
 rad run todolist-app-2.bicep --application todolist
 ```
+
+Test out the Todo list. It should work and no longer give the "No database is configured" message.
 
 ## Step 3: Swap Redis for PostgreSQL
 
@@ -192,6 +194,12 @@ This deploys the same Todolist container but swaps the Redis resource for a Post
 rad run todolist-app-3.bicep --application todolist
 ```
 
+Manually delete the Redis resource since it is no longer needed.
+
+```bash
+rad resource delete Applications.Datastores/redisCaches redis
+```
+
 ## Step 4: Deploy PostgreSQL to Azure
 
 In order to deploy the PostgreSQL database to Azure, we need to do several steps:
@@ -221,9 +229,9 @@ In order for Radius to deploy resources to Azure, it must be able to authenticat
 Create a service principal if you do not already have one and set environment variables.
 ```
 az ad sp create-for-rbac --role Owner --scope /subscriptions/$AZURE_SUBSCRIPTION_ID > azure-credentials.json
-export AZURE_CLIENT_ID=`jq -r .'appId' azure-credentials.json`
-export AZURE_CLIENT_SECRET=`jq -r .'password' azure-credentials.json`
-export AZURE_TENANT_ID=`jq -r .'tenant' azure-credentials.json`
+export AZURE_CLIENT_ID=$(jq -r .'appId' azure-credentials.json)
+export AZURE_CLIENT_SECRET=$(jq -r .'password' azure-credentials.json)
+export AZURE_TENANT_ID=$(jq -r .'tenant' azure-credentials.json)
 ```
 Add the service principal as a credential in Radius. Credentials today are stored at the Radius top level. In the future, we plan to move credentials to the environment level to enable multiple subscriptions.
 ```
@@ -234,15 +242,34 @@ rad credential register azure sp --client-id $AZURE_CLIENT_ID  --client-secret $
 Update the environment with the Azure details.
 
 ```
-rad environment update todolist-demo \
-  --group todolist-demo \
+rad environment update demo-todolist \
+  --group demo-todolist \
   --azure-subscription-id $AZURE_SUBSCRIPTION_ID \
   --azure-resource-group $AZURE_RESOURCE_GROUP_NAME
 ```
-**Note:** We are using the imperitive CLI commands since the environment already exists. Alternatively, you could have updated the `todolist-demo-env.bicep` file with the subscription and resource group then redeployed it. The `todolist-demo-env.bicep` file has an example commented out for your reference.
+**Note:** We are using the imperitive CLI commands since the environment already exists. Alternatively, you could have updated the `demo-todolist-env.bicep` file with the subscription and resource group then redeployed it. The `demo-todolist-env.bicep` file has an example commented out for your reference.
 
+You can confirm the environment was updated using the `rad environment show demo-todolist -o json` command. The output should be similar to:
+
+```bash
+$ rad env show demo-todolist -o json                
+{
+  "id": "/planes/radius/local/resourcegroups/demo-todolist/providers/Applications.Core/environments/demo-todolist",
+  "location": "global",
+  "name": "demo-todolist",
+  "properties": {
+    "compute": {
+      "kind": "kubernetes",
+      "namespace": "demo"
+    },
+    "providers": {
+      "azure": {
+        "scope": "/subscriptions/c95e0456-ea5b-4a22-a0cd-e3767f24725b/resourceGroups/ubs"
+...
+```
 
 Optionally, delete the file containing the credentials.
+
 ```
 rm azure-credentials.json
 ```
@@ -252,10 +279,10 @@ rm azure-credentials.json
 The `rad recipe register` command updates the environment definition.
 
 ```bash
-rad recipe register default \         
+rad recipe register default \
   --resource-type Radius.Resources/postgreSQL \
   --template-kind terraform \
-  --template-path git::https://github.com/zachcasper/ubs.git//recipes/azure/postgresql \   
+  --template-path git::https://github.com/zachcasper/ubs.git//recipes/azure/postgresql \
   --parameters resource_group_name=$AZURE_RESOURCE_GROUP_NAME \
   --parameters location=$AZURE_LOCATION
 ```
@@ -273,7 +300,7 @@ Some explaination of this command is warranted.
 There are no changes to the application definition so we will use the same file from the previous step. This will now deploy the database to Azure.
 
 ```bash
-rad deploy todolist-app-3.bicep 
+rad run todolist-app-3.bicep 
 ```
 
 Deploying an Azure Database for PostgreSQL Flexible Server takes approximately 10 minutes.
@@ -282,7 +309,19 @@ Deploying an Azure Database for PostgreSQL Flexible Server takes approximately 1
 
 The PostgreSQL resource type has a `storage_gb` property. Azure Database for PostgresSQL Flexible Server defaults to provisioning 32GiB of storage. With the `storage_gb` property, the developer can increase the storage as needed.
 
-Modify the `todolist-app-3.bicep`by changing line 41 from `storage_gb: 32` to `storage_gb: 64`.
+Modify the `todolist-app-3.bicep`by changing line 41 from `storage_gb: 32` to `storage_gb: 64`. The full resource should look like this:
+
+```yaml
+resource postgresql 'Radius.Resources/postgreSQL@2023-10-01-preview' = {
+  name: 'postgrssql'
+  properties: {
+    application: todolist.id
+    environment: environment
+    size: 'S' 
+    storage_gb: 64
+  }
+}
+```
 
 Redeploy the application.
 
@@ -324,14 +363,14 @@ kubectl get pods -A
 ```
 Delete the namespaces if the pods still exist. This is not expected but just to make sure. When you delete the application the namespaces are retained but the pods should be destroyed. 
 ```
-kubectl delete namespace todolist-demo
+kubectl delete namespace demo-todolist
 ```
 Verify the Azure PostgreSQL database has been deleted via the Azure portal. This is not expected just to make sure.
 
 Optionally, delete the Radius environments, Radius resource groups, and associated workspaces.
 ```
-rad environment delete todolist-demo
-rad group delete todolist-demo
+rad environment delete demo-todolist
+rad group delete demo-todolist
 ```
 Optionally delete the Azure resource groups (if it doesn't contain the AKS cluster).
 ```
