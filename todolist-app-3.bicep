@@ -25,7 +25,7 @@ resource frontend 'Applications.Core/containers@2023-10-01-preview' = {
       }
     }
     connections: {
-      postgresql: {
+      postgresql:{
         source: postgresql.id
       }
     }
@@ -33,23 +33,11 @@ resource frontend 'Applications.Core/containers@2023-10-01-preview' = {
 }
 
 resource postgresql 'Radius.Resources/postgreSQL@2023-10-01-preview' = {
-  name: 'postgresql'
+  name: 'postgrssql'
   properties: {
     application: todolist.id
     environment: environment
-    size: 'S'
-  }
-}
-
-resource gateway 'Applications.Core/gateways@2023-10-01-preview' = {
-  name: 'gateway'
-  properties: {
-    application: todolist.id
-    routes: [
-      {
-        path: '/'
-        destination: 'http://frontend:3000'
-      }
-    ]
+    size: 'S' 
+    storage_gb: 32 
   }
 }
