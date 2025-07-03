@@ -12,17 +12,14 @@ variable "context" {
   type = any
 }
 
-locals {
-  uniqueName = var.context.resource.name
-  namespace = var.context.runtime.kubernetes.namespace
-}
-
-resource "kubernetes_deployment" "postgresql" {
+resource "kubernetes_deployment" "redis" {
   metadata {
-    name      = local.uniqueName
-    namespace = local.namespace
+    name = "redis-${sha512(var.context.resource.id)}"
+    namespace = var.context.runtime.kubernetes.namespace
+    labels = {
+      app = "redis"
+    }
   }
-
   spec {
     selector {
       match_labels = {
@@ -30,7 +27,6 @@ resource "kubernetes_deployment" "postgresql" {
         resource = var.context.resource.name
       }
     }
-
     template {
       metadata {
         labels = {
@@ -38,11 +34,10 @@ resource "kubernetes_deployment" "postgresql" {
           resource = var.context.resource.name
         }
       }
-
       spec {
         container {
-          image = "redis"
           name  = "redis"
+          image = "redis:6"
           port {
             container_port = 6379
           }
@@ -52,21 +47,21 @@ resource "kubernetes_deployment" "postgresql" {
   }
 }
 
-resource "kubernetes_service" "postgres" {
+resource "kubernetes_service" "redis" {
   metadata {
-    name      = local.uniqueName
-    namespace = local.namespace
+    name = "redis-${sha512(var.context.resource.id)}"
+    namespace = var.context.runtime.kubernetes.namespace
   }
-
   spec {
+    type = "ClusterIP"
     selector = {
       app = "redis"
       resource = var.context.resource.name
     }
-
     port {
-      port = 6379
-    } 
+      port        = var.port
+      target_port = "6379"
+    }
   }
 }
 
