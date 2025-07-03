@@ -55,7 +55,7 @@ resource "kubernetes_deployment" "redis" {
 
 resource "kubernetes_service" "redis" {
   metadata {
-    name = "redis-${sha512(var.context.resource.id)}"
+    name = "redis-${substr(sha512(var.context.resource.id), 0, 8)}"
     namespace = var.context.runtime.kubernetes.namespace
   }
   spec {
