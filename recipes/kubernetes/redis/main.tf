@@ -12,6 +12,12 @@ variable "context" {
   type = any
 }
 
+variable "port" {
+  description = "The port Redis is offered on. Defaults to 6379."
+  type = number
+  default = 6379
+}
+
 resource "kubernetes_deployment" "redis" {
   metadata {
     name = "redis-${sha512(var.context.resource.id)}"
