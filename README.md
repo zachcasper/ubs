@@ -112,13 +112,13 @@ Open http://localhost:3000 in your browser. Click the POSTGRESQL environment var
 
 Open http://localhost:7007 in your browser and examine the Radius Dashboard which is built on Backstage. In the future, this dashboard will be a standalone Backstage plug-in and include more developer documentation.
 
+CTRL-C to exit the log stream.
+
 Run the rap app graph command and confirm that Radius has created Kubernetes resources for the PostgreSQL database.
 
 ```
 rad app graph -a todolist
 ```
-
-CTRL-C to exit the log stream.
 
 If you prefer for the Radius CLI to not setup port forwarding and log streaming, you can simply run:
 

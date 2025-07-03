@@ -71,14 +71,21 @@ resource "kubernetes_service" "postgres" {
 }
 
 output "result" {
-  resources = [
-    '/planes/kubernetes/local/namespaces/${svc.metadata.namespace}/providers/core/Service/${svc.metadata.name}'
-    '/planes/kubernetes/local/namespaces/${redis.metadata.namespace}/providers/apps/Deployment/${redis.metadata.name}'
-  ]
   value = {
     values = {
-      host = "${kubernetes_service.redis.metadata[0].name}.${kubernetes_service.redis.metadata[0].namespace}.svc.cluster.local"
-      port = 6379
+      host = "${kubernetes_service.metadata.name}.${kubernetes_service.metadata.namespace}.svc.cluster.local"
+      port = kubernetes_service.spec.port[0].port
+      username = ""
     }
+    secrets = {
+      password = ""
+    }
+    // UCP resource IDs
+    resources = [
+        "/planes/kubernetes/local/namespaces/${kubernetes_service.metadata.namespace}/providers/core/Service/${kubernetes_service.metadata.name}",
+        "/planes/kubernetes/local/namespaces/${kubernetes_deployment.metadata.namespace}/providers/apps/Deployment/${kubernetes_deployment.metadata.name}"
+    ]
   }
+  description = "The result of the Recipe. Must match the target resource's schema."
+  sensitive = true
 }
