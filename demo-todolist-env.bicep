@@ -8,7 +8,7 @@ param gitToken string
 param registryCACert string
 
 resource env 'Applications.Core/environments@2023-10-01-preview' = {
-  name: 'todolist-demo'
+  name: 'demo-todolist'
   properties: {
     compute: {
       kind: 'kubernetes'
@@ -30,27 +30,27 @@ resource env 'Applications.Core/environments@2023-10-01-preview' = {
             }
           }
         }
-        registry: {
-          mirror: 'https://iac.devcloud.ubs.net/terraform/providers/mirror/'
-          authentication: {
-            token: {
-              secret: mirrorTokenSecret.id
-            }
-          }
-          tls: {
-            skipVerify: true
-            caCertificate: {
-              source: registryTLSCerts.id
-              key: 'server.crt'
-            }
-          }
-        }
-        version: {
-          releasesArchiveUrl: 'https://it4it-nexus-tp-repo.swissbank.com/repository/proxy-bin-crossplatform-hashicorp-raw-oss-consul/terraform/1.9.6/terraform_1.9.6_linux_amd64.zip'
-          tls: {
-            skipVerify: true
-          }
-        }
+      //   registry: {
+      //     mirror: 'https://iac.devcloud.ubs.net/terraform/providers/mirror/'
+      //     authentication: {
+      //       token: {
+      //         secret: mirrorTokenSecret.id
+      //       }
+      //     }
+      //     tls: {
+      //       skipVerify: true
+      //       caCertificate: {
+      //         source: registryTLSCerts.id
+      //         key: 'server.crt'
+      //       }
+      //     }
+      //   }
+      //   version: {
+      //     releasesArchiveUrl: 'https://it4it-nexus-tp-repo.swissbank.com/repository/proxy-bin-crossplatform-hashicorp-raw-oss-consul/terraform/1.9.6/terraform_1.9.6_linux_amd64.zip'
+      //     tls: {
+      //       skipVerify: true
+      //     }
+      //   }
       }
     }
     recipes: {
@@ -58,18 +58,18 @@ resource env 'Applications.Core/environments@2023-10-01-preview' = {
         default: {
           templateKind: 'terraform'
           templatePath: 'git::https://github.com/zachcasper/ubs.git//recipes/kubernetes/redis'
-          tls: {
-            skipVerify: true
-          }
+          // tls: {
+          //   skipVerify: true
+          // }
         }
       }
       'Radius.Resources/postgreSQL': {
         default: {
           templateKind: 'terraform'
           templatePath: 'git::https://github.com/zachcasper/ubs.git//recipes/kubernetes/postgresql'
-          tls: {
-            skipVerify: true
-          }
+          // tls: {
+          //   skipVerify: true
+          // }
         }
       }
     }

@@ -33,7 +33,7 @@ resource frontend 'Applications.Core/containers@2023-10-01-preview' = {
 }
 
 resource postgresql 'Radius.Resources/postgreSQL@2023-10-01-preview' = {
-  name: 'postgrssql'
+  name: 'postgresql'
   properties: {
     application: todolist.id
     environment: environment

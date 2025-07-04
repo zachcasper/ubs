@@ -93,16 +93,23 @@ rad env create demo-todolist --group demo-todolist
 Then deploy the Bicep file (in the future this double step will not be required).
 
 ```
-rad deploy demo-todolist-env.bicep --group demo-todolist --environment demo-todolist
+rad deploy demo-todolist-env.bicep \
+  --group demo-todolist \
+  --environment demo-todolist \
+  --parameters gitToken=<my-pat-token> \
+  --parameters registryCACert="$(cat ./ubs_cert.pem)"
 ```
 Create the Radius Workspace. A Workspace is the local CLI configuration. It is a combination of the Kubernetes context, Radius resource group, and Radius environment.
 ```
-rad workspace create kubernetes demo-todolist --context `kubectl config current-context` --group demo-todolist --environment demo-todolist
+rad workspace create kubernetes demo-todolist \
+  --context $(kubectl config current-context) \
+  --group demo-todolist \
+  --environment demo-todolist
 ```
 
 ## Step 1: Deploy a container
 
-This deploys only the Todolist container without a database.
+Run the Todolist application. The first application definition file deploys only the Todolist container without a database.
 
 ```bash
 rad run todolist-app-1.bicep --application todolist
@@ -110,7 +117,7 @@ rad run todolist-app-1.bicep --application todolist
 
 The `rad run` command sets up port forwarding so that you can access the application and Radius Dashboard without configuring ingress. 
 
-Open http://localhost:3000 in your browser. Click the POSTGRESQL environment variable and examine the environment variables injected into the container. Click the Todo List in the header. Since there is no database, the application says "No database is configured, items will be stored in memory."
+Open http://localhost:3000 in your browser. Click the Todo List in the header. Since there is no database, the application says "No database is configured, items will be stored in memory."
 
 Open http://localhost:7007 in your browser and examine the Radius Dashboard which is built on Backstage. In the future, this dashboard will be a standalone Backstage plug-in and include more developer documentation.
 
@@ -122,17 +129,15 @@ Run the rap app graph command and confirm that Radius has created Kubernetes res
 rad app graph -a todolist
 ```
 
-If you prefer for the Radius CLI to not setup port forwarding and log streaming, you can simply run:
-
-```bash
-rad deploy todolist-app-1.bicep
-```
-
-Once deployed, you can manually port forward using:
-
-```bash
-kubectl port-forward $(kubectl get pod -l radapp.io/resource=frontend -n demo-todolist -o name) 3000:3000 -n demo-todolist
-```
+> [!TIP]
+> If you prefer for the Radius CLI to not setup port forwarding and log streaming, you can simply run:
+> ```bash
+> rad deploy todolist-app-1.bicep
+> ```
+> Once deployed, you can manually port forward using:
+> ```bash
+> kubectl port-forward $(kubectl get pod -l radapp.io/resource=frontend -n demo-todolist -o name) 3000:3000 -n demo-todolist
+> ```
 
 ## Step 2: Add a Redis cache
 
@@ -145,13 +150,15 @@ default   Applications.Datastores/redisCaches  terraform                        
 default   Radius.Resources/postgreSQL          terraform                        git::https://github.com/zachcasper/ubs.git//recipes/kubernetes/postgresql
 ```
 
-This deploys the same Todolist container but adds a Redis cache resource, and a connection between the container and the cache.
+Run the Todolist application. The second application definition file deploys the same Todolist container but adds a Redis cache resource, and a connection between the container and the cache.
 
 ```bash
 rad run todolist-app-2.bicep --application todolist
 ```
 
 Test out the Todo list. It should work and no longer give the "No database is configured" message.
+
+Click the REDIS connection on the main page and examine the environment variables injected into the container.
 
 ## Step 3: Swap Redis for PostgreSQL
 
@@ -163,7 +170,7 @@ rad resource-type create -f types.yaml
 
 You can view the Resource Type properties using the `rad resource-type show` command. The output looks like this:
 
-```
+```bash
 $ rad resource-type show Radius.Resources/postgreSQL
 TYPE                         NAMESPACE
 Radius.Resources/postgreSQL  Radius.Resources
@@ -190,13 +197,15 @@ The non-read-only properties are set by the developer. The read-only properties 
 
 When creating resource types, a Bicep extension must also be created and added to the bicepconfig.json file. Both of these steps have already been done in this repository.
 
-This deploys the same Todolist container but swaps the Redis resource for a PostgreSQL resource and updates the connection.
+Run the Todolist application. The third application definition file deploys the same Todolist container but swaps the Redis resource for a PostgreSQL resource and updates the connection.
 
 ```bash
 rad run todolist-app-3.bicep --application todolist
 ```
 
-Manually delete the Redis resource since it is no longer needed.
+Visiting the Todolist application, you can see that there is a POSTGRESQL connection instead of a REDIS connection.
+
+Manually delete the Redis resource since we deleted it from our application definition file and it is no longer needed.
 
 ```bash
 rad resource delete Applications.Datastores/redisCaches redis
@@ -378,3 +387,7 @@ Optionally delete the Azure resource groups (if it doesn't contain the AKS clust
 ```
 az group delete --location $AZURE_LOCATION --resource-group $AZURE_RESOURCE_GROUP_NAME
 ```
+
+## To Do
+
+Fix recipes and container images
