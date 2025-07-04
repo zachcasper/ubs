@@ -2,10 +2,12 @@
 
 This is a step-by-step guide for deploying the Todolist demo application with successively more complexity. It includes:
 
-* **Step 1** – Deploy a single container to Kubernetes using the built-in Radius deployment functionality
-* **Step 2** – Add a Redis cache deployed to Kubernetes using a Terraform configuration
-* **Step 3** – Replace the Redis cache with a PostgreSQL deployed to Kubernetes using a Terraform configuration (we will also create a resource type since Radius does not ship with a PostgreSQL resource type)
-* **Step 4** – Replace the PostgreSQL recipe so that the database is deployed to Azure
+* **Step 1** – Deploying a single container to Kubernetes using the built-in Radius deployment functionality
+* **Step 2** – Adding a Redis cache deployed to Kubernetes using a Terraform configuration
+* **Step 3** – Replacing the Redis cache with a PostgreSQL database deployed to Kubernetes using a Terraform configuration (we will also create a resource type since Radius does not ship with a PostgreSQL resource type)
+* **Step 4** – Replacing the PostgreSQL recipe so that the database is deployed to Azure
+* **Step 5** – As a developer, increasing the storage for the database
+* **Step 6** – As a platform engineer, modifying the environment so that the database is deployed in high-availability mode
 
 ## Prerequisites
 
@@ -46,7 +48,7 @@ Delete the config file containing workspaces. Remember that a workspace is just 
 rm ~/.rad/config.yaml
 ```
 
-or
+or on Windows
 
 ```bash
 del %USERPROFILE%\.rad\config.yaml
@@ -66,15 +68,15 @@ kubectl config use-context <context>
 
 ### Create a Radius Resource Group and Environment
 
-All resources including Radius environments reside in a resource group just like in Azure. 
+All resources including Radius environments reside in a resource group just like in Azure (they are completely separate however).
 
-Create a Radius resource group. There is no configuration for resource groups yet (there will be RBAC rules in the future), so we can just use a simple create command.
+Create a Radius resource group. There is no configuration options for resource groups yet (there will be RBAC rules in the future), so we can just use a simple create command.
 ```
 rad group create demo-todolist
 ```
 Create a corresponding environments. We could use the `rad environment create` imperative command, but since we need more advanced configurations, we will use a declarative approach with a Bicep file. This also saves us from using multiple `rad recipe register` imperative commands. 
 
-This repository has the demo-todolist-env.bicep file. There are four resources defined:
+This repository includes the `demo-todolist-env.bicep` file. There are four resources defined in this file:
 
 * The demo-todolist environment. 
   * The Kubernetes namespace is `demo`. When we deploy the `todolist` application, Radius will deploy the resources to the `demo-todolist` Kubernetes namespace.
