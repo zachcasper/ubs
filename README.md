@@ -216,7 +216,7 @@ rad resource delete Applications.Datastores/redisCaches redis
 In order to deploy the PostgreSQL database to Azure, we need to do several steps:
 
 1. Have a subscription and resource group already created
-2. Create a service principal and create a credential in Radius (this is ultimately stored as a Kubernetes secret)
+2. Create a service principal and create a credential in Radius (the credential is stored as a Kubernetes secret)
 3. Update the environment with the subscription ID and resource group
 4. Update the environment with a new recipe that deploys to Azure
 5. Deploy the database
