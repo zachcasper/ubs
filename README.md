@@ -336,12 +336,12 @@ Using the Azure portal, confirm the storage has been increased to 64 GiB.
 Update the recipe with a `ha=true` parameter. This parameter is passed directly to the Terraform configuration. You can see on line 67 that if `ha` is true, it configures the database in high-availability mode.
 
 ```bash
-rad recipe register default \         
+rad recipe register default \
   --resource-type Radius.Resources/postgreSQL \
   --template-kind terraform \
-  --template-path git::https://github.com/zachcasper/ubs.git//recipes/azure/postgresql \   
+  --template-path git::https://github.com/zachcasper/ubs.git//recipes/azure/postgresql \
   --parameters resource_group_name=$AZURE_RESOURCE_GROUP_NAME \
-  --parameters location=$AZURE_LOCATION
+  --parameters location=$AZURE_LOCATION \
   --parameters ha=true
 ```
 Deploy the application again.
