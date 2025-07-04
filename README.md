@@ -441,7 +441,3 @@ Optionally delete the Azure resource groups (if it doesn't contain the AKS clust
 ```
 az group delete --location $AZURE_LOCATION --resource-group $AZURE_RESOURCE_GROUP_NAME
 ```
-
-## To Do
-
-Fix recipes and container images
