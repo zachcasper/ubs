@@ -17,6 +17,10 @@ This is a step-by-step guide for deploying the Todolist demo application with su
 1. A Git repository for storing the Terraform configurations
 
 ## Step 0: Configure Radius
+> [!IMPORTANT]
+>
+> What follows from this point is performed by the platform engineer.
+
 ### Clean up previous configurations
 
 Let's start from scratch so it's clear what is happening.
@@ -66,6 +70,22 @@ Update the current context if needed.
 kubectl config use-context <context>
 ```
 
+### Prepare Recipes
+
+This sample uses three Terraform configurations which must be stored in Git. 
+
+First, confirm the container images are available and update the Terraform as needed.
+
+* The Redis recipe uses the `postgres:16-alpine` image
+* The PostgreSQL recipe uses the `redis:6` image
+
+Commit the three recipes to a Git repository.
+
+Update the `demo-todolist-env.bicep` file with the location of the Kubernetes recipes. The file currently points to:
+
+* Redis: `'git::https://devcloud.ubs.net/ubs/ts/gcto/cpe/infra-as-code/iac/gitlab-central-registry/low-code/radius-recipes.git//recipes/kubernetes/redis'`
+* PostgreSQL: `'git::https://devcloud.ubs.net/ubs/ts/gcto/cpe/infra-as-code/iac/gitlab-central-registry/low-code/radius-recipes.git//recipes/kubernetes/postgresql'`
+
 ### Create a Radius Resource Group and Environment
 
 All resources including Radius environments reside in a resource group just like in Azure (they are completely separate however).
@@ -109,6 +129,10 @@ rad workspace create kubernetes demo-todolist \
 
 ## Step 1: Deploy a container
 
+> [!IMPORTANT]
+>
+> What follows from this point is performed by the developer.
+
 Run the Todolist application. The first application definition file deploys only the Todolist container without a database.
 
 ```bash
@@ -141,6 +165,10 @@ rad app graph -a todolist
 
 ## Step 2: Add a Redis cache
 
+> [!IMPORTANT]
+>
+> What follows from this point is performed by the platform engineer.
+
 Radius has a pre-defined resource type for [Redis](https://docs.radapp.io/reference/resource-schema/cache/redis/). When we created the environment, a recipe was included which defines how Redis should be deployed. You can see the recipe using the `rad recipe list` command. You should see something similar to:
 
 ```bash
@@ -149,6 +177,10 @@ RECIPE    TYPE                                 TEMPLATE KIND  TEMPLATE VERSION  
 default   Applications.Datastores/redisCaches  terraform                        git::https://github.com/zachcasper/ubs.git//recipes/kubernetes/redis
 default   Radius.Resources/postgreSQL          terraform                        git::https://github.com/zachcasper/ubs.git//recipes/kubernetes/postgresql
 ```
+
+> [!IMPORTANT]
+>
+> What follows from this point is performed by the developer.
 
 Run the Todolist application. The second application definition file deploys the same Todolist container but adds a Redis cache resource, and a connection between the container and the cache.
 
@@ -161,6 +193,10 @@ Test out the Todo list. It should work and no longer give the "No database is co
 Click the REDIS connection on the main page and examine the environment variables injected into the container.
 
 ## Step 3: Swap Redis for PostgreSQL
+
+> [!IMPORTANT]
+>
+> What follows from this point is performed by the platform engineer.
 
 Unlike Redis, Radius does not have a PostgreSQL resource type. Create the resource type.
 
@@ -197,6 +233,10 @@ The non-read-only properties are set by the developer. The read-only properties 
 
 When creating resource types, a Bicep extension must also be created and added to the bicepconfig.json file. Both of these steps have already been done in this repository.
 
+> [!IMPORTANT]
+>
+> What follows from this point is performed by the developer.
+
 Run the Todolist application. The third application definition file deploys the same Todolist container but swaps the Redis resource for a PostgreSQL resource and updates the connection.
 
 ```bash
@@ -222,6 +262,10 @@ In order to deploy the PostgreSQL database to Azure, we need to do several steps
 5. Deploy the database
 
 ### Azure subscription and resource group
+
+> [!IMPORTANT]
+>
+> What follows from this point is performed by the platform engineer.
 
 If you do not have a subscription and resource group create one. Since you already have an AKS cluster created, the same subscription and resource group can be used (although this is not required).
 
@@ -293,7 +337,7 @@ The `rad recipe register` command updates the environment definition.
 rad recipe register default \
   --resource-type Radius.Resources/postgreSQL \
   --template-kind terraform \
-  --template-path git::https://github.com/zachcasper/ubs.git//recipes/azure/postgresql \
+  --template-path git::https://devcloud.ubs.net/ubs/ts/gcto/cpe/infra-as-code/iac/gitlab-central-registry/low-code/radius-recipes.git//recipes/azure/postgresql
   --parameters resource_group_name=$AZURE_RESOURCE_GROUP_NAME \
   --parameters location=$AZURE_LOCATION
 ```
@@ -302,25 +346,31 @@ Some explaination of this command is warranted.
 
 * `rad recipe register` – This is creating a pointer to a Terraform configuration or a Bicep template which will be called when a resource is created in Radius.
 * `rad recipe register default` – Each recipe has a name but you should use default. This is legacy functionality which will be retired. With older resource types which are built into Radius such as Redis and MongoDB, developers could specify a named recipe to be used to deploy the resource. The newer resource types such as the PostgreSQL resource type we are defining here will not allow developers to specify a recipe name. 
-* `--template-path git::https://github.com/zachcasper/ubs.git//recipes/kubernetes/postgresql` – This is the path to the Terraform configuration. Radius uses the generic Git module source as [documented here](https://developer.hashicorp.com/terraform/language/modules/sources#generic-git-repository). In the example here, the Git repository on GitHub is UBS. The `//` indicates a sub-module or a sub-directory and postgresql is the directory containing the main.tf file.
+* `--template-path git::https://devcloud.ubs.net/ubs/ts/gcto/cpe/infra-as-code/iac/gitlab-central-registry/low-code/radius-recipes.git//recipes/azure/postgresql` – This is the path to the Terraform configuration. Radius uses the generic Git module source as [documented here](https://developer.hashicorp.com/terraform/language/modules/sources#generic-git-repository). In the example here, the Git repository on GitHub is UBS. The `//` indicates a sub-module or a sub-directory and postgresql is the directory containing the main.tf file.
 
 * Notice that there are parameters on this recipe which were not on the Kubernetes recipes. There is a bug where Radius is not setting the resource group or location on the context variable which gets passed to the recipe. The parameters arguement forces a variable to be set in the Terraform configuration. You'll see this variable referenced in the `azure/postgresql/main.tf` on line 20 and 25 (``var.resource_group_name` and `var.location`). In the future these variables would be `var.context.azure.resourceGroup` and the parameter will not be required.
 
 ### Deploy the database
 
-There are no changes to the application definition so we will use the same file from the previous step. This will now deploy the database to Azure.
+> [!IMPORTANT]
+>
+> What follows from this point is performed by the developer.
+
+There are no changes to the application definition so we will use the same file from the previous step. 
 
 ```bash
-rad run todolist-app-3.bicep 
+rad deploy todolist-app-3.bicep 
 ```
 
 Deploying an Azure Database for PostgreSQL Flexible Server takes approximately 10 minutes.
+
+Examine the CONNECTION_POSTGRESQL_HOST environment variable. It points to an Azure URL.
 
 ## Step 5: Modify the PostgreSQL resource
 
 The PostgreSQL resource type has a `storage_gb` property. Azure Database for PostgresSQL Flexible Server defaults to provisioning 32GiB of storage. With the `storage_gb` property, the developer can increase the storage as needed.
 
-Modify the `todolist-app-3.bicep`by changing line 41 from `storage_gb: 32` to `storage_gb: 64`. The full resource should look like this:
+Modify the `todolist-app-3.bicep` by changing line 41 from `storage_gb: 32` to `storage_gb: 64`. The full resource should look like this:
 
 ```yaml
 resource postgresql 'Radius.Resources/postgreSQL@2023-10-01-preview' = {
@@ -344,13 +394,17 @@ Using the Azure portal, confirm the storage has been increased to 64 GiB.
 
 ## Step 6: Set the database in high-availability mode
 
+> [!IMPORTANT]
+>
+> What follows from this point is performed by the platform engineer.
+
 Update the recipe with a `ha=true` parameter. This parameter is passed directly to the Terraform configuration. You can see on line 67 that if `ha` is true, it configures the database in high-availability mode.
 
 ```bash
 rad recipe register default \
   --resource-type Radius.Resources/postgreSQL \
   --template-kind terraform \
-  --template-path git::https://github.com/zachcasper/ubs.git//recipes/azure/postgresql \
+  --template-path git::https://devcloud.ubs.net/ubs/ts/gcto/cpe/infra-as-code/iac/gitlab-central-registry/low-code/radius-recipes.git//recipes/azure/postgresql \
   --parameters resource_group_name=$AZURE_RESOURCE_GROUP_NAME \
   --parameters location=$AZURE_LOCATION \
   --parameters ha=true

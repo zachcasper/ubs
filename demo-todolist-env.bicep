@@ -57,7 +57,7 @@ resource env 'Applications.Core/environments@2023-10-01-preview' = {
       'Applications.Datastores/redisCaches': {
         default: {
           templateKind: 'terraform'
-          templatePath: 'git::https://github.com/zachcasper/ubs.git//recipes/kubernetes/redis'
+          templatePath: 'git::https://devcloud.ubs.net/ubs/ts/gcto/cpe/infra-as-code/iac/gitlab-central-registry/low-code/radius-recipes.git//recipes/kubernetes/redis'
           tls: {
             skipVerify: true
           }
@@ -66,7 +66,7 @@ resource env 'Applications.Core/environments@2023-10-01-preview' = {
       'Radius.Resources/postgreSQL': {
         default: {
           templateKind: 'terraform'
-          templatePath: 'git::https://github.com/zachcasper/ubs.git//recipes/kubernetes/postgresql'
+          templatePath: 'git::https://devcloud.ubs.net/ubs/ts/gcto/cpe/infra-as-code/iac/gitlab-central-registry/low-code/radius-recipes.git//recipes/kubernetes/postgresql'
           tls: {
             skipVerify: true
           }
